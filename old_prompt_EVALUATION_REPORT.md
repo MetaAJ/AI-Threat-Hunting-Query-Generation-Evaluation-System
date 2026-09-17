@@ -1,5 +1,9 @@
 # Evaluation Report
 
+## Summary
+
+Seven hypotheses execute successfully but fail exact-match scoring, for three distinct, hand-verified reasons rather than one general cause. Hypothesis 1 filters on errorCode, but this dataset records the relevant login failures via a populated errorMessage with an empty errorCode — a value-semantics issue invisible from column names alone. Hypotheses 5, 8, and 9a under-group relative to the reference output (e.g., #8 groups by one dimension where the reference uses four); we deliberately did not correct this by reading the expected grouping columns out of hypotheses_outcomes.json, since doing so would mean hardcoding answers rather than generating them. Hypotheses 3, 4, and 9b are near-misses caused by filter breadth (off by ~1% on #4, and a broader substring match than the reference definition on #9b) rather than structural mismatches. Hypothesis 7's instanceType column name mismatch is a known but undisclosed-by-design gap, since fixing it would require reading the expected schema.
+
 ## Before and after
 
 | Metric | Baseline | Improved |

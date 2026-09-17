@@ -86,7 +86,12 @@ class QueryGenerator:
 
             When checking for failed, erroneous, or unauthorized events, consider every column in the
             schema that could plausibly record an error or failure signal, rather than assuming it is
-            always captured in one specific column. Prefer ILIKE '%text%' for substring or "contains an
+            always captured in one specific column.
+            Do not combine unrelated conditions with OR unless the hypothesis explicitly describes multiple 
+            alternative triggers. A broad OR condition (such as checking for any error) should only be added
+            when the hypothesis is specifically about failures or errors, not appended to every query as a 
+            general safety net.
+            Prefer ILIKE '%text%' for substring or "contains an
             indicator" matching. If a regular expression is genuinely needed, DuckDB's function is
             regexp_matches(column, pattern) — not regexp_match.
 

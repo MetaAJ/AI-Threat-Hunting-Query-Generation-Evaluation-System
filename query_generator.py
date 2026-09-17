@@ -47,11 +47,12 @@ class QueryGenerator:
                 Return only one JSON object matching this exact shape:
                 {OUTPUT_SHAPE}
                 The SQL must be a read-only SELECT statement. Do not include markdown fences.
-                For event-level queries, include _row_id in SELECT so results can be evaluated.
-                For grouped queries, name the count column count.
+                Always write queries in this exact form: SELECT _row_id, * FROM cloudtrail WHERE <your filter logic>.
+                Never write GROUP BY, COUNT, or any other aggregate function, and never select a subset of
+                columns. Your only job is determining the correct WHERE clause that captures the hypothesis;
+                whether the final answer should be counted or grouped, and by which columns, is decided
+                downstream and is not something you need to determine.
                 Keep reasoning and each assumptions item concise: 1-2 sentences maximum each.
-                For broad or repeated behavioral patterns, aggregate by the smallest useful set of context
-                columns (such as event, identity, source IP, user agent, or error) and return count.
                 When the hypothesis says a text field contains an indicator, use a case-insensitive substring
                 comparison instead of exact equality.
                 Explain the query using only the hypothesis and available data; never claim knowledge of expected results.
@@ -96,11 +97,6 @@ class QueryGenerator:
             return common + f"""
                 Use only columns in this exact schema and write valid DuckDB SQL:
                 {self.schema_description}
-                
-                If the hypothesis describes a pattern of repeated or frequent behavior across many actors
-                (for example brute force, scanning, or repeated failures), prefer a grouped query that counts
-                occurrences by the relevant dimension such as source IP, user identity, or error code. If the
-                hypothesis asks to identify specific events or actors, return event-level rows with _row_id.
                 
                 Few-shot examples:
                 {json.dumps(examples, indent=2)}
@@ -189,4 +185,6 @@ def parse_llm_response(raw_response: str) -> dict[str, Any]:
         raise ValueError("LLM confidence must be between 0 and 1")
     if not re.match(r"^\s*(WITH\b.*\bSELECT\b|SELECT\b)", result["sql"], re.I | re.S):
         raise ValueError("Only SELECT queries are allowed")
+    if re.search(r"\bGROUP\s+BY\b", result["sql"], re.I):
+        raise ValueError("Query must not aggregate; return full event rows only")
     return result

@@ -171,8 +171,8 @@ def main() -> None:
     if args.generate_only:
         print("\nGenerating improved queries without execution or scoring...")
         for hypothesis in hypotheses:
-            generated = generator.generate(hypothesis["hypothesis"], improved=True)
             print(f"\n{hypothesis['id']}: {hypothesis['name']}")
+            generated = generator.generate(hypothesis["hypothesis"], improved=True)
             print(f"Interpretation: {generated['interpretation']}")
             print(f"Reasoning: {generated['reasoning']}")
             print("Assumptions:")

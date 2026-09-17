@@ -16,6 +16,8 @@ Grouped expected outcomes (has `count`) are auto-aggregated from raw rows if pos
 
 Final weighted score: 70% accuracy, 30% executability.
 
+*Note: the `accuracy_score` field reports this F1 value (or, for grouped results, the F1 overlap between actual and expected groups), not classification accuracy in the strict sense. Classification accuracy is uninformative for this task, since a query returning zero rows would score near-perfectly against a dataset this large — F1 is the standard measure for retrieval/detection tasks because it ignores the (enormous, uninteresting) true-negative population entirely.*
+
 ## Iteration and results
 
 `main.py` runs baseline and improved over the same 11 hypotheses in one execution. Baseline failures were almost entirely schema hallucination (e.g. `userIdentity.type` instead of this dataset's flattened `userIdentitytype`) — fixed by schema grounding. The submitted run: baseline 54.5% execution / 9.1% accuracy pass rate; improved 100% execution / 45.5% accuracy pass rate (5 of 11 hypotheses exact-match), weighted score 0.79 vs. 0.40.

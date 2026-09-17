@@ -2,7 +2,7 @@
 
 ## Prompting strategy
 
-The baseline asks the model for DuckDB SQL and an explanation without showing the dataset schema. The improved prompt includes the exact schema, five sample rows, three few-shot examples, strict JSON instructions, and one repair attempt after a DuckDB error. Expected outcomes are never included in either prompt.
+The baseline asks the model for DuckDB SQL and an explanation without showing the dataset schema. The improved prompt includes the exact schema, five sample rows, three few-shot examples, strict JSON instructions, and one repair attempt after a DuckDB error. Expected outcomes remain isolated from query generation and are used only for post-execution evaluation.
 
 ## Evaluation
 

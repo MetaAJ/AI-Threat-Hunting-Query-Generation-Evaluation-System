@@ -1,5 +1,16 @@
 # Evaluation Report
 
+## Summary
+
+The improved system generated executable DuckDB SQL for all 11 hypotheses without requiring retries, increasing first-try and eventual execution rates to 100%. Five hypotheses matched their expected outcomes: root console access, CloudTrail disruption, Whoami reconnaissance, Secrets Manager access, and permanent access-key creation. Compared with the baseline, the accuracy pass rate increased from 27.27% to 45.45%, while the overall weighted score increased from 0.3818 to 0.6182.
+
+The six remaining failures are result mismatches rather than SQL-generation or execution failures. 
+1. Hypothesis 1 returns no results because failed console logins in this dataset are represented through `errorMessage` while the generated query checks `errorCode`. 
+2. Hypotheses 4, 8, 9a, and 9b return broader result sets than their references because their filters capture additional error codes, bucket ACL calls, or user-agent values. 
+3. Hypothesis 7 uses a lexicographic comparison for EC2 instance sizes, causing substantial over-selection and failing to produce the expected grouped `instanceType` counts.
+
+The latest prompt generally returns complete event rows using `SELECT _row_id, *`. This improves explainability and allows the evaluator to normalize event-level output into grouped counts when the necessary columns are available. The remaining accuracy gap is therefore primarily caused by value semantics and filter breadth rather than hallucinated columns, invalid SQL, or missing result fields.
+
 ## Before and after
 
 | Metric | Baseline | Improved |

@@ -132,7 +132,10 @@ def call_llm(messages: list[dict[str, str]], model: str) -> str:
     client = Groq(api_key=api_key, max_retries=0)
     working_messages = list(messages)
     json_retried = False
-    for attempt in range(6):
+    rate_limit_attempts = 0
+    max_rate_limit_attempts = 5
+
+    while True:
         try:
             response = client.chat.completions.create(
                 model=model,
@@ -144,12 +147,13 @@ def call_llm(messages: list[dict[str, str]], model: str) -> str:
             )
             return response.choices[0].message.content or ""
         except RateLimitError as exc:
-            if attempt == 4:
+            if rate_limit_attempts >= max_rate_limit_attempts:
                 raise
             retry_after = exc.response.headers.get("retry-after")
-            wait_seconds = float(retry_after) if retry_after else min(60, 5 * 2**attempt)
+            wait_seconds = float(retry_after) if retry_after else min(60, 5 * 2**rate_limit_attempts)
             print(f"    Groq rate limit reached; retrying in {wait_seconds:.1f}s")
             time.sleep(wait_seconds)
+            rate_limit_attempts += 1
         except BadRequestError as exc:
             if json_retried or "json" not in str(exc).lower():
                 raise
@@ -162,8 +166,6 @@ def call_llm(messages: list[dict[str, str]], model: str) -> str:
                 ),
             }]
             print("    Groq returned incomplete JSON; retrying once")
-
-    raise RuntimeError("LLM request failed after rate-limit retries")
 
 
 def parse_llm_response(raw_response: str) -> dict[str, Any]:

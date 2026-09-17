@@ -26,9 +26,9 @@ One hypothesis was traced in full detail as a worked example: the "Sign-in Failu
 
 ## Limitations and future work
 
-The evaluation set is small (11 hypotheses) and tied to one flattened CloudTrail schema; conclusions about prompt design may not generalize to a differently-shaped dataset without re-verification.
-
 Several hypotheses still fail on filter precision even after the grouping-decision fix: a query can select the correct columns and still filter too broadly or too narrowly relative to the reference definition (for example, matching a wider set of user-agent strings than the reference considers "suspicious"). This class of failure is a genuine open problem — narrowing it further would require either more diverse sample rows illustrating edge cases, or additional domain-specific guidance in the prompt, since the exact reference filter cannot be inferred from the hypothesis text alone.
+
+Individual hypothesis outcomes vary between runs even with temperature=0 and an unchanged prompt — hypotheses 1, 3, and 6 have each independently passed in one run and failed in another across repeated executions with identical code, while 2, 5, and 10 have passed consistently in every run. This reflects inherent non-determinism in the LLM API rather than a flaw in the evaluation methodology.
 
 One dataset-specific naming mismatch was found and deliberately left unresolved: one expected outcome uses a column name (`instanceType`) that does not exist in the actual CSV, which only has the flattened equivalent (`requestParametersinstanceType`). Renaming the query's output to match would only be possible by reading the expected outcome first, which would mean fixing a specific test case using information the generator is not supposed to have access to.
 

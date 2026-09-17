@@ -23,8 +23,11 @@ def write_report(results: dict[str, Any], path: Path = Path("EVALUATION_REPORT.m
         "Executability measures valid DuckDB execution; a repaired query receives partial "
         "execution credit. Event results use precision, recall, and F1 over event identifiers, "
         "with F1 >= 0.95 treated as a pass. "
-        "Grouped/count results require an exact match. The overall score weights accuracy at "
-        "70% and execution at 30%.",
+        "Grouped/count results pass only on an exact match of grouping columns and counts; the "
+        "accuracy score for grouped results reports the F1 overlap between actual and expected "
+        "groups, so a near-miss and a badly wrong query are distinguishable even though both fail "
+        "the strict pass/fail threshold. "
+        "The overall score weights accuracy at 70% and execution at 30%.",
         "",
         "## Improved run by hypothesis",
         "",

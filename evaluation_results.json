@@ -4,318 +4,19 @@
       "queries": 11,
       "first_try_execution_rate": 0.6364,
       "eventual_execution_rate": 0.6364,
-      "accuracy_pass_rate": 0.2727,
-      "overall_weighted_score": 0.3818
+      "accuracy_pass_rate": 0.0909,
+      "overall_weighted_score": 0.4295
     },
     "items": [
       {
         "id": "1",
         "name": "Sign-in Failures (Brute Force/Bot Attacks)",
         "hypothesis": "CloudTrail logs contain failed console login attempts that could indicate brute force or bot attacks",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='ConsoleLogin' AND responseElements LIKE '%Failure%'",
-        "interpretation": "This hypothesis is asking for all CloudTrail events that represent a failed attempt to log in to the AWS Management Console, which could signal brute\u2011force or bot activity.",
-        "reasoning": "I filter on eventName='ConsoleLogin' to capture console login events, and I look for the substring 'Failure' in responseElements (case\u2011insensitive) to isolate only the failed attempts.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'ConsoleLogin' AND errorCode IS NOT NULL",
+        "interpretation": "This hypothesis is asking for failed console login attempts that may indicate brute force or bot attacks.",
+        "reasoning": "Failed console logins are recorded with eventName 'ConsoleLogin' and an errorCode; filtering on non\u2011null errorCode captures those failures.",
         "assumptions": [
-          "The CloudTrail schema includes an eventName column and a responseElements column that contains the word 'Failure' for unsuccessful console logins"
-        ],
-        "confidence": 0.85,
-        "executed": false,
-        "retried": false,
-        "execution_error": "Binder Error: Referenced column \"responseElements\" not found in FROM clause!\nCandidate bindings: \"requestParametersinstanceType\", \"eventVersion\", \"errorMessage\", \"userIdentityuserName\", \"userAgent\"\n\nLINE 1: ... _row_id, * FROM cloudtrail WHERE eventName='ConsoleLogin' AND responseElements LIKE '%Failure%'\n                                                                          ^",
-        "generation_error": null,
-        "failure_category": "execution_error",
-        "metrics": {
-          "metric_type": "not_executed",
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.0
-      },
-      {
-        "id": "2",
-        "name": "Root Access Through Console",
-        "hypothesis": "Root user console login attempts can be identified in CloudTrail logs",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'ConsoleLogin' AND userIdentity.type = 'Root' AND eventSource = 'signin.amazonaws.com'",
-        "interpretation": "This hypothesis is asking for all CloudTrail records that represent console login attempts performed by the AWS root account.",
-        "reasoning": "I filter on eventName 'ConsoleLogin' to capture console logins, on userIdentity.type 'Root' to isolate root user activity, and on eventSource 'signin.amazonaws.com' to ensure the login was via the console.",
-        "assumptions": [
-          "The CloudTrail table contains columns eventName, userIdentity.type, and eventSource that match these values."
-        ],
-        "confidence": 0.85,
-        "executed": false,
-        "retried": false,
-        "execution_error": "Binder Error: Referenced table \"userIdentity\" not found!\nCandidate tables: \"cloudtrail\"\n\nLINE 1: ..., * FROM cloudtrail WHERE eventName = 'ConsoleLogin' AND userIdentity.type = 'Root' AND eventSource = 'signin.amazonaws...\n                                                                    ^",
-        "generation_error": null,
-        "failure_category": "execution_error",
-        "metrics": {
-          "metric_type": "not_executed",
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.0
-      },
-      {
-        "id": "3",
-        "name": "CloudTrail Disruption",
-        "hypothesis": "Adversaries may attempt to disrupt CloudTrail logging to evade defenses",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName IN ('DeleteTrail','UpdateTrail','StopLogging','PutEventSelectors','PutTrailNotification')",
-        "interpretation": "This hypothesis is asking for events where an adversary attempts to disrupt CloudTrail logging by modifying or disabling the trail.",
-        "reasoning": "I filtered on the eventName values that correspond to actions that can disable or alter CloudTrail logging, as these are the primary ways an attacker could disrupt logging.",
-        "assumptions": [
-          "The cloudtrail table contains an eventName column that records API calls affecting CloudTrail trails."
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": null,
-        "metrics": {
-          "metric_type": "event_rows",
-          "identifier": "_row_id",
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "actual_rows": 4,
-          "expected_rows": 4,
-          "exact_match": true,
-          "passed": true,
-          "accuracy_score": 1.0
-        },
-        "weighted_score": 1.0
-      },
-      {
-        "id": "4",
-        "name": "Unauthorized API Calls",
-        "hypothesis": "Unauthorized API calls (AccessDenied or UnauthorizedOperation errors) can reveal application errors or malicious activity",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE errorCode IN ('AccessDenied', 'UnauthorizedOperation')",
-        "interpretation": "This hypothesis is asking for any CloudTrail events that resulted in an AccessDenied or UnauthorizedOperation error, which could indicate unauthorized API calls that expose application errors or malicious activity.",
-        "reasoning": "I filtered on the errorCode column to capture only the two specific error types mentioned in the hypothesis, ensuring that any event with these codes is returned.",
-        "assumptions": [
-          "The CloudTrail table contains an errorCode column that records the type of error for each API call."
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": "result_mismatch",
-        "metrics": {
-          "metric_type": "grouped_exact_match",
-          "exact_match": 0.0,
-          "actual_rows": 2411,
-          "expected_rows": 2387,
-          "missing_columns": [],
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.3
-      },
-      {
-        "id": "5",
-        "name": "Whoami Reconnaissance",
-        "hypothesis": "Attackers use GetCallerIdentity API calls (similar to Unix 'whoami' command) to identify which AWS account they're using",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName ILIKE '%GetCallerIdentity%' AND eventSource ILIKE '%sts.amazonaws.com%'",
-        "interpretation": "This hypothesis is asking for all CloudTrail events where attackers are calling the GetCallerIdentity API to discover the AWS account they are operating in, analogous to the Unix 'whoami' command.",
-        "reasoning": "I filter on eventName containing 'GetCallerIdentity' and restrict to the STS service, which is the only service that provides caller identity information. This captures all relevant API calls without aggregating or grouping.",
-        "assumptions": [
-          "The eventName field contains the exact API name 'GetCallerIdentity', and eventSource identifies the STS service"
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": null,
-        "metrics": {
-          "metric_type": "grouped_exact_match",
-          "exact_match": 1.0,
-          "actual_rows": 4767,
-          "expected_rows": 4767,
-          "missing_columns": [],
-          "passed": true,
-          "accuracy_score": 1.0
-        },
-        "weighted_score": 1.0
-      },
-      {
-        "id": "6",
-        "name": "Secrets Manager Access",
-        "hypothesis": "Adversaries may attempt to retrieve secrets (certificates, credentials, sensitive data) from AWS Secrets Manager",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventSource='secretsmanager.amazonaws.com' AND (eventName='GetSecretValue' OR eventName='GetSecret' OR eventName='DescribeSecret')",
-        "interpretation": "This hypothesis is asking for CloudTrail events where an adversary might be retrieving secrets from AWS Secrets Manager.",
-        "reasoning": "I filter on the Secrets Manager service and include the primary API calls that return secret values or metadata.",
-        "assumptions": [
-          "The eventSource for Secrets Manager is 'secretsmanager.amazonaws.com'.",
-          "Retrieval of secrets is represented by GetSecretValue, GetSecret, or DescribeSecret events."
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": null,
-        "metrics": {
-          "metric_type": "event_rows",
-          "identifier": "eventID",
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "actual_rows": 1,
-          "expected_rows": 1,
-          "exact_match": true,
-          "passed": true,
-          "accuracy_score": 1.0
-        },
-        "weighted_score": 1.0
-      },
-      {
-        "id": "7",
-        "name": "Large EC2 Instance Creation",
-        "hypothesis": "Attackers may attempt to launch extra-large EC2 instances (10xlarge or bigger) for cryptomining or other resource-intensive activities",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventSource='ec2.amazonaws.com' AND eventName='RunInstances' AND (instanceType LIKE '%10xlarge%' OR instanceType LIKE '%12xlarge%' OR instanceType LIKE '%16xlarge%' OR instanceType LIKE '%24xlarge%' OR instanceType LIKE '%32xlarge%' OR instanceType LIKE '%48xlarge%' OR instanceType LIKE '%96xlarge%' OR instanceType LIKE '%metal%')",
-        "interpretation": "This hypothesis is asking for EC2 RunInstances events that create instances of type 10xlarge or larger, which are often used for high\u2011performance workloads such as cryptomining.",
-        "reasoning": "I filtered on the EC2 service and RunInstances action, then matched instance types that are 10xlarge or larger using LIKE patterns for known large instance families.",
-        "assumptions": [
-          "The cloudtrail table contains an instanceType field that records the EC2 instance type used in RunInstances events."
-        ],
-        "confidence": 0.85,
-        "executed": false,
-        "retried": false,
-        "execution_error": "Binder Error: Referenced column \"instanceType\" not found in FROM clause!\nCandidate bindings: \"eventType\", \"eventTime\", \"userIdentityprincipalId\", \"userIdentityaccountId\", \"userIdentityaccessKeyId\"\n\nLINE 1: ...urce='ec2.amazonaws.com' AND eventName='RunInstances' AND (instanceType LIKE '%10xlarge%' OR instanceType LIKE '%12xlarge...\n                                                                      ^",
-        "generation_error": null,
-        "failure_category": "execution_error",
-        "metrics": {
-          "metric_type": "not_executed",
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.0
-      },
-      {
-        "id": "8",
-        "name": "S3 Bucket Brute Force",
-        "hypothesis": "Attackers may brute force S3 bucket names by attempting GetBucketAcl requests",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='GetBucketAcl'",
-        "interpretation": "This hypothesis is asking for all CloudTrail events where attackers attempted to retrieve the ACL of an S3 bucket, which is typically done via GetBucketAcl API calls.",
-        "reasoning": "I filtered on eventName='GetBucketAcl' to capture every GetBucketAcl request, as brute\u2011forcing bucket names would generate many such calls regardless of success or failure.",
-        "assumptions": [
-          "The eventName field accurately records the API action performed."
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": "result_mismatch",
-        "metrics": {
-          "metric_type": "grouped_exact_match",
-          "exact_match": 0.0,
-          "actual_rows": 350,
-          "expected_rows": 212,
-          "missing_columns": [],
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.3
-      },
-      {
-        "id": "9a",
-        "name": "Suspicious User Agents",
-        "hypothesis": "CloudTrail logs contain requests from suspicious user agents (containing 'kali', 'parrot', or 'powershell') indicating potential attacker tools",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE userAgent ILIKE '%kali%' OR userAgent ILIKE '%parrot%' OR userAgent ILIKE '%powershell%'",
-        "interpretation": "This hypothesis is looking for CloudTrail events whose user agent strings contain any of the substrings 'kali', 'parrot', or 'powershell', which are commonly associated with attacker tools or scripts.",
-        "reasoning": "I used case\u2011insensitive substring matching (ILIKE) on the userAgent column to capture any occurrence of the specified keywords, as the hypothesis specifies a text field containing an indicator.",
-        "assumptions": [
-          "The CloudTrail table has a column named userAgent that stores the request\u2019s user agent string."
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": "result_mismatch",
-        "metrics": {
-          "metric_type": "grouped_exact_match",
-          "exact_match": 0.0,
-          "actual_rows": 1915,
-          "expected_rows": 1896,
-          "missing_columns": [],
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.3
-      },
-      {
-        "id": "9b",
-        "name": "Suspicious User Agents",
-        "hypothesis": "CloudTrail logs contain requests from suspicious user agents (containing 'command/*')",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE userAgent ILIKE '%command/%'",
-        "interpretation": "This hypothesis is asking for any CloudTrail log entries whose user agent string contains the substring 'command/' (case\u2011insensitive), indicating a potentially suspicious or automated client.",
-        "reasoning": "I used a case\u2011insensitive LIKE comparison on the userAgent column to capture any occurrence of 'command/' regardless of surrounding text or case, which aligns with the hypothesis requirement of detecting suspicious user agents.",
-        "assumptions": [
-          "The CloudTrail table has a column named userAgent that stores the request's user agent string."
-        ],
-        "confidence": 0.85,
-        "executed": true,
-        "retried": false,
-        "execution_error": null,
-        "generation_error": null,
-        "failure_category": "result_mismatch",
-        "metrics": {
-          "metric_type": "grouped_exact_match",
-          "exact_match": 0.0,
-          "actual_rows": 535,
-          "expected_rows": 101,
-          "missing_columns": [],
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.3
-      },
-      {
-        "id": "10",
-        "name": "Permanent Key Creation",
-        "hypothesis": "CreateAccessKey events from IAM users (not roles) can identify creation of long-term credentials",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='CreateAccessKey' AND userIdentity.type='IAMUser'",
-        "interpretation": "This hypothesis is asking for all CreateAccessKey events that were performed by IAM users (not roles), which can indicate the creation of long-term credentials.",
-        "reasoning": "I filter on eventName='CreateAccessKey' to capture the specific API call, and on userIdentity.type='IAMUser' to exclude role-based actions, as the hypothesis focuses on user-initiated credential creation.",
-        "assumptions": [
-          "The userIdentity.type field correctly distinguishes IAM users from roles."
-        ],
-        "confidence": 0.85,
-        "executed": false,
-        "retried": false,
-        "execution_error": "Binder Error: Referenced table \"userIdentity\" not found!\nCandidate tables: \"cloudtrail\"\n\nLINE 1: ..., * FROM cloudtrail WHERE eventName='CreateAccessKey' AND userIdentity.type='IAMUser'\n                                                                     ^",
-        "generation_error": null,
-        "failure_category": "execution_error",
-        "metrics": {
-          "metric_type": "not_executed",
-          "passed": false,
-          "accuracy_score": 0.0
-        },
-        "weighted_score": 0.0
-      }
-    ]
-  },
-  "improved": {
-    "summary": {
-      "queries": 11,
-      "first_try_execution_rate": 1.0,
-      "eventual_execution_rate": 1.0,
-      "accuracy_pass_rate": 0.4545,
-      "overall_weighted_score": 0.6182
-    },
-    "items": [
-      {
-        "id": "1",
-        "name": "Sign-in Failures (Brute Force/Bot Attacks)",
-        "hypothesis": "CloudTrail logs contain failed console login attempts that could indicate brute force or bot attacks",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName ILIKE '%ConsoleLogin%' AND errorCode IS NOT NULL",
-        "interpretation": "This hypothesis is asking for CloudTrail entries that represent failed console login attempts, which could signal brute\u2011force or bot activity.",
-        "reasoning": "Failed console logins are recorded with eventName containing \"ConsoleLogin\" and a populated errorCode field. The query filters on those two conditions to capture only the relevant failures.",
-        "assumptions": [
-          "Failed console logins are logged with a non\u2011null errorCode in CloudTrail."
+          "CloudTrail records failed console logins with a non\u2011null errorCode"
         ],
         "confidence": 0.85,
         "executed": true,
@@ -341,13 +42,321 @@
         "id": "2",
         "name": "Root Access Through Console",
         "hypothesis": "Root user console login attempts can be identified in CloudTrail logs",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE userIdentitytype = 'Root' AND eventName ILIKE '%ConsoleLogin%'",
-        "interpretation": "This hypothesis is asking for all CloudTrail log entries that represent console login attempts performed by the root user.",
-        "reasoning": "The query filters on the root identity type and the ConsoleLogin event name, using a case\u2011insensitive match to capture any variation of the event name.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='ConsoleLogin' AND userIdentity.type='Root'",
+        "interpretation": "This hypothesis is asking for all CloudTrail events that represent a console login attempt performed by the root user.",
+        "reasoning": "I filter on eventName='ConsoleLogin' to capture console sign\u2011in events, and on userIdentity.type='Root' to isolate those performed by the root account.",
         "assumptions": [
-          "The eventName field contains the string 'ConsoleLogin' for console login attempts."
+          "The CloudTrail schema includes an eventName column and a nested userIdentity.type field that indicates the identity type."
         ],
-        "confidence": 0.87,
+        "confidence": 0.85,
+        "executed": false,
+        "retried": false,
+        "execution_error": "Binder Error: Referenced table \"userIdentity\" not found!\nCandidate tables: \"cloudtrail\"\n\nLINE 1: ... _row_id, * FROM cloudtrail WHERE eventName='ConsoleLogin' AND userIdentity.type='Root'\n                                                                          ^",
+        "generation_error": null,
+        "failure_category": "execution_error",
+        "metrics": {
+          "metric_type": "not_executed",
+          "passed": false,
+          "accuracy_score": 0.0
+        },
+        "weighted_score": 0.0
+      },
+      {
+        "id": "3",
+        "name": "CloudTrail Disruption",
+        "hypothesis": "Adversaries may attempt to disrupt CloudTrail logging to evade defenses",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventSource='cloudtrail.amazonaws.com' AND (eventName='StopLogging' OR eventName='DeleteTrail' OR (eventName='UpdateTrail' AND requestParameters.loggingEnabled='false'))",
+        "interpretation": "This hypothesis is asking for evidence that an adversary has tried to disable or stop CloudTrail logging to avoid detection.",
+        "reasoning": "I filter on CloudTrail API calls that control logging: StopLogging, DeleteTrail, and UpdateTrail with loggingEnabled set to false. These actions directly affect the trail\u2019s ability to record events, matching the hypothesis of logging disruption.",
+        "assumptions": [
+          "The cloudtrail table contains eventSource, eventName, and requestParameters.loggingEnabled fields that reflect API calls to CloudTrail."
+        ],
+        "confidence": 0.85,
+        "executed": false,
+        "retried": false,
+        "execution_error": "Binder Error: Referenced table \"requestParameters\" not found!\nCandidate tables: \"cloudtrail\"\n\nLINE 1: ...' OR eventName='DeleteTrail' OR (eventName='UpdateTrail' AND requestParameters.loggingEnabled='false'))\n                                                                        ^",
+        "generation_error": null,
+        "failure_category": "execution_error",
+        "metrics": {
+          "metric_type": "not_executed",
+          "passed": false,
+          "accuracy_score": 0.0
+        },
+        "weighted_score": 0.0
+      },
+      {
+        "id": "4",
+        "name": "Unauthorized API Calls",
+        "hypothesis": "Unauthorized API calls (AccessDenied or UnauthorizedOperation errors) can reveal application errors or malicious activity",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE errorCode IN ('AccessDenied', 'UnauthorizedOperation')",
+        "interpretation": "This hypothesis is asking for all CloudTrail events that resulted in an AccessDenied or UnauthorizedOperation error, which could indicate unauthorized API calls that may expose application errors or malicious activity.",
+        "reasoning": "I filter on the errorCode field to capture only the two relevant error types, ensuring the query returns every event where an API call was denied or unauthorized.",
+        "assumptions": [
+          "The CloudTrail table contains an errorCode column that records the error type for each event."
+        ],
+        "confidence": 0.85,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": "result_mismatch",
+        "metrics": {
+          "metric_type": "grouped_exact_match",
+          "exact_match": 0.0,
+          "actual_rows": 2411,
+          "expected_rows": 2387,
+          "missing_columns": [],
+          "passed": false,
+          "accuracy_score": 0.995,
+          "overlap_precision": 0.99,
+          "overlap_recall": 1.0
+        },
+        "weighted_score": 0.9965
+      },
+      {
+        "id": "5",
+        "name": "Whoami Reconnaissance",
+        "hypothesis": "Attackers use GetCallerIdentity API calls (similar to Unix 'whoami' command) to identify which AWS account they're using",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='GetCallerIdentity' AND eventSource='sts.amazonaws.com'",
+        "interpretation": "This hypothesis is asking for all CloudTrail events where attackers use the GetCallerIdentity API call to discover the AWS account they are operating in.",
+        "reasoning": "I filter on eventName='GetCallerIdentity' to capture the specific API call, and on eventSource='sts.amazonaws.com' to ensure it is the STS service that provides account identity information.",
+        "assumptions": [
+          "The eventSource for GetCallerIdentity is sts.amazonaws.com"
+        ],
+        "confidence": 0.85,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": null,
+        "metrics": {
+          "metric_type": "grouped_exact_match",
+          "exact_match": 1.0,
+          "actual_rows": 4767,
+          "expected_rows": 4767,
+          "missing_columns": [],
+          "passed": true,
+          "accuracy_score": 1.0,
+          "overlap_precision": 1.0,
+          "overlap_recall": 1.0
+        },
+        "weighted_score": 1.0
+      },
+      {
+        "id": "6",
+        "name": "Secrets Manager Access",
+        "hypothesis": "Adversaries may attempt to retrieve secrets (certificates, credentials, sensitive data) from AWS Secrets Manager",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventSource = 'secretsmanager.amazonaws.com' AND eventName IN ('GetSecretValue','DescribeSecret','ListSecrets')",
+        "interpretation": "This hypothesis is asking for CloudTrail events where an adversary might retrieve secrets from AWS Secrets Manager.",
+        "reasoning": "I filter on the Secrets Manager service and include event names that represent secret retrieval or listing actions, which are the typical API calls used to access secrets.",
+        "assumptions": [
+          "The CloudTrail table contains eventSource and eventName columns that capture Secrets Manager API calls"
+        ],
+        "confidence": 0.85,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": "result_mismatch",
+        "metrics": {
+          "metric_type": "event_rows",
+          "identifier": "eventID",
+          "precision": 0.0026,
+          "recall": 1.0,
+          "f1": 0.0051,
+          "actual_rows": 398,
+          "expected_rows": 1,
+          "exact_match": false,
+          "passed": false,
+          "accuracy_score": 0.0051
+        },
+        "weighted_score": 0.3036
+      },
+      {
+        "id": "7",
+        "name": "Large EC2 Instance Creation",
+        "hypothesis": "Attackers may attempt to launch extra-large EC2 instances (10xlarge or bigger) for cryptomining or other resource-intensive activities",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='RunInstances' AND regexp_like(requestParameters.instancesSet.item.instanceType, '^[0-9]+xlarge$') AND CAST(regexp_substr(requestParameters.instancesSet.item.instanceType, '^[0-9]+') AS INTEGER) >= 10",
+        "interpretation": "This hypothesis is asking for any EC2 instance launch events where the instance type is 10xlarge or larger, which could indicate resource-intensive activities such as cryptomining.",
+        "reasoning": "I filter on RunInstances events, then use a regular expression to capture instance types that end with 'xlarge' and extract the numeric prefix. By casting that prefix to an integer and ensuring it is at least 10, I isolate 10xlarge and larger instance types.",
+        "assumptions": [
+          "The cloudtrail table contains a field requestParameters.instancesSet.item.instanceType that holds the instance type string."
+        ],
+        "confidence": 0.85,
+        "executed": false,
+        "retried": false,
+        "execution_error": "Catalog Error: Scalar Function with name regexp_like does not exist!\nDid you mean \"regexp_replace\"?\n\nLINE 1: ... _row_id, * FROM cloudtrail WHERE eventName='RunInstances' AND regexp_like(requestParameters.instancesSet.item.instanceType...\n                                                                          ^",
+        "generation_error": null,
+        "failure_category": "execution_error",
+        "metrics": {
+          "metric_type": "not_executed",
+          "passed": false,
+          "accuracy_score": 0.0
+        },
+        "weighted_score": 0.0
+      },
+      {
+        "id": "8",
+        "name": "S3 Bucket Brute Force",
+        "hypothesis": "Attackers may brute force S3 bucket names by attempting GetBucketAcl requests",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='GetBucketAcl'",
+        "interpretation": "This hypothesis is asking for all CloudTrail events where attackers are attempting to brute force S3 bucket names by making GetBucketAcl API calls.",
+        "reasoning": "I filter on eventName='GetBucketAcl' to capture all attempts to retrieve ACLs for any bucket, which is the typical action used in brute\u2011force bucket enumeration.",
+        "assumptions": [
+          "The eventName field contains the API action name and 'GetBucketAcl' is the exact value used for S3 bucket ACL requests."
+        ],
+        "confidence": 0.85,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": "result_mismatch",
+        "metrics": {
+          "metric_type": "grouped_exact_match",
+          "exact_match": 0.0,
+          "actual_rows": 350,
+          "expected_rows": 212,
+          "missing_columns": [],
+          "passed": false,
+          "accuracy_score": 0.7544,
+          "overlap_precision": 0.6057,
+          "overlap_recall": 1.0
+        },
+        "weighted_score": 0.8281
+      },
+      {
+        "id": "9a",
+        "name": "Suspicious User Agents",
+        "hypothesis": "CloudTrail logs contain requests from suspicious user agents (containing 'kali', 'parrot', or 'powershell') indicating potential attacker tools",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE lower(userAgent) LIKE '%kali%' OR lower(userAgent) LIKE '%parrot%' OR lower(userAgent) LIKE '%powershell%'",
+        "interpretation": "This hypothesis is asking for CloudTrail events where the user agent string contains indicators of known attacker tools such as Kali, Parrot, or PowerShell.",
+        "reasoning": "I filter on the userAgent field, converting it to lowercase to ensure case-insensitive matching, and use LIKE with wildcards to capture any occurrence of the specified substrings.",
+        "assumptions": [
+          "The userAgent column exists in the cloudtrail table and contains the request's user agent string."
+        ],
+        "confidence": 0.85,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": "result_mismatch",
+        "metrics": {
+          "metric_type": "grouped_exact_match",
+          "exact_match": 0.0,
+          "actual_rows": 1915,
+          "expected_rows": 1896,
+          "missing_columns": [],
+          "passed": false,
+          "accuracy_score": 0.995,
+          "overlap_precision": 0.9901,
+          "overlap_recall": 1.0
+        },
+        "weighted_score": 0.9965
+      },
+      {
+        "id": "9b",
+        "name": "Suspicious User Agents",
+        "hypothesis": "CloudTrail logs contain requests from suspicious user agents (containing 'command/*')",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE userAgent LIKE '%command/%'",
+        "interpretation": "This hypothesis is asking for all CloudTrail events where the request was made using a user agent string that includes the substring 'command/'",
+        "reasoning": "I used a LIKE filter on the userAgent column to capture any occurrence of 'command/' in the user agent string, which is the only indicator of suspicious command-line tools in the hypothesis.",
+        "assumptions": [
+          "The CloudTrail table has a column named userAgent that stores the request's user agent string"
+        ],
+        "confidence": 0.85,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": "result_mismatch",
+        "metrics": {
+          "metric_type": "grouped_exact_match",
+          "exact_match": 0.0,
+          "actual_rows": 535,
+          "expected_rows": 101,
+          "missing_columns": [],
+          "passed": false,
+          "accuracy_score": 0.0,
+          "overlap_precision": 0.0,
+          "overlap_recall": 0.0
+        },
+        "weighted_score": 0.3
+      },
+      {
+        "id": "10",
+        "name": "Permanent Key Creation",
+        "hypothesis": "CreateAccessKey events from IAM users (not roles) can identify creation of long-term credentials",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName='CreateAccessKey' AND userIdentity.type='IAMUser'",
+        "interpretation": "This hypothesis is asking for all CreateAccessKey events that were performed by IAM users (not roles), which can indicate the creation of long\u2011term credentials.",
+        "reasoning": "I filter on eventName to capture only CreateAccessKey actions and on userIdentity.type to ensure the actor is an IAM user rather than a role or other identity type.",
+        "assumptions": [
+          "The cloudtrail table contains an eventName column and a nested userIdentity.type field that indicates the identity type."
+        ],
+        "confidence": 0.85,
+        "executed": false,
+        "retried": false,
+        "execution_error": "Binder Error: Referenced table \"userIdentity\" not found!\nCandidate tables: \"cloudtrail\"\n\nLINE 1: ..., * FROM cloudtrail WHERE eventName='CreateAccessKey' AND userIdentity.type='IAMUser'\n                                                                     ^",
+        "generation_error": null,
+        "failure_category": "execution_error",
+        "metrics": {
+          "metric_type": "not_executed",
+          "passed": false,
+          "accuracy_score": 0.0
+        },
+        "weighted_score": 0.0
+      }
+    ]
+  },
+  "improved": {
+    "summary": {
+      "queries": 11,
+      "first_try_execution_rate": 0.9091,
+      "eventual_execution_rate": 0.9091,
+      "accuracy_pass_rate": 0.2727,
+      "overall_weighted_score": 0.6389
+    },
+    "items": [
+      {
+        "id": "1",
+        "name": "Sign-in Failures (Brute Force/Bot Attacks)",
+        "hypothesis": "CloudTrail logs contain failed console login attempts that could indicate brute force or bot attacks",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'ConsoleLogin' AND (errorCode IS NOT NULL OR errorMessage ILIKE '%Failed%')",
+        "interpretation": "This hypothesis is asking for console login attempts that did not succeed, which may signal brute\u2011force or bot activity.",
+        "reasoning": "ConsoleLogin events are the only API calls for console sign\u2011ins; a non\u2011null errorCode or an errorMessage containing \"Failed\" indicates a failed attempt. The filter captures all such failures regardless of the specific error code.",
+        "assumptions": [
+          "The eventName for console sign\u2011ins is \"ConsoleLogin\" and failed attempts are recorded in errorCode or errorMessage."
+        ],
+        "confidence": 0.88,
+        "executed": true,
+        "retried": false,
+        "execution_error": null,
+        "generation_error": null,
+        "failure_category": "result_mismatch",
+        "metrics": {
+          "metric_type": "event_rows",
+          "identifier": "_row_id",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "actual_rows": 0,
+          "expected_rows": 12,
+          "exact_match": false,
+          "passed": false,
+          "accuracy_score": 0.0
+        },
+        "weighted_score": 0.3
+      },
+      {
+        "id": "2",
+        "name": "Root Access Through Console",
+        "hypothesis": "Root user console login attempts can be identified in CloudTrail logs",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'ConsoleLogin' AND userIdentitytype = 'Root'",
+        "interpretation": "This hypothesis asks for any CloudTrail events that represent console login attempts performed by the root IAM user.",
+        "reasoning": "Console login events are recorded with eventName 'ConsoleLogin'; filtering on userIdentitytype='Root' isolates attempts made by the root account.",
+        "assumptions": [
+          "The eventName for console logins is consistently 'ConsoleLogin' and userIdentitytype correctly indicates 'Root' for root account actions."
+        ],
+        "confidence": 0.88,
         "executed": true,
         "retried": false,
         "execution_error": null,
@@ -371,43 +380,44 @@
         "id": "3",
         "name": "CloudTrail Disruption",
         "hypothesis": "Adversaries may attempt to disrupt CloudTrail logging to evade defenses",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName IN ('DeleteTrail','UpdateTrail','StopLogging','PutTrail')",
-        "interpretation": "This hypothesis is asking for any API calls that could modify or disable CloudTrail logging, such as deleting, updating, stopping, or creating a trail.",
-        "reasoning": "I filter on the eventName values that represent actions which would disrupt or alter CloudTrail logging, capturing all relevant records.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName ILIKE '%Trail%' OR eventName ILIKE '%Logging%' OR errorCode IS NOT NULL OR errorMessage ILIKE '%error%'",
+        "interpretation": "This hypothesis seeks events that indicate an adversary is trying to disrupt CloudTrail logging, such as deleting, updating, or stopping a trail, or any API call that results in an error.",
+        "reasoning": "I filter on event names that modify or control CloudTrail trails (containing 'Trail' or 'Logging') and also capture any event that produced an error code or an error message, which are typical signals of a disruption attempt.",
         "assumptions": [
-          "These event names correspond to actions that can disrupt CloudTrail logging"
+          "Event names containing 'Trail' or 'Logging' correspond to CloudTrail management actions.",
+          "Any non\u2011null errorCode or errorMessage indicates a failure that could be part of a disruption attempt."
         ],
-        "confidence": 0.87,
+        "confidence": 0.85,
         "executed": true,
         "retried": false,
         "execution_error": null,
         "generation_error": null,
-        "failure_category": null,
+        "failure_category": "result_mismatch",
         "metrics": {
           "metric_type": "event_rows",
           "identifier": "_row_id",
-          "precision": 1.0,
+          "precision": 0.0,
           "recall": 1.0,
-          "f1": 1.0,
-          "actual_rows": 4,
+          "f1": 0.0,
+          "actual_rows": 1513125,
           "expected_rows": 4,
-          "exact_match": true,
-          "passed": true,
-          "accuracy_score": 1.0
+          "exact_match": false,
+          "passed": false,
+          "accuracy_score": 0.0
         },
-        "weighted_score": 1.0
+        "weighted_score": 0.3
       },
       {
         "id": "4",
         "name": "Unauthorized API Calls",
         "hypothesis": "Unauthorized API calls (AccessDenied or UnauthorizedOperation errors) can reveal application errors or malicious activity",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE errorCode ILIKE '%AccessDenied%' OR errorCode ILIKE '%UnauthorizedOperation%'",
-        "interpretation": "This hypothesis is asking for all API calls that resulted in AccessDenied or UnauthorizedOperation errors, which may indicate unauthorized or malicious activity.",
-        "reasoning": "The query filters on the errorCode column for the two specified error types, using case-insensitive substring matching as required.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE (errorCode ILIKE '%AccessDenied%' OR errorCode ILIKE '%UnauthorizedOperation%' OR errorMessage ILIKE '%AccessDenied%' OR errorMessage ILIKE '%UnauthorizedOperation%')",
+        "interpretation": "This hypothesis seeks events where an API call failed due to an access denial or unauthorized operation, which can indicate either application misconfiguration or malicious activity.",
+        "reasoning": "The query filters on both errorCode and errorMessage columns for the two common denial indicators, ensuring that any event reporting such an error is captured.",
         "assumptions": [
-          "The errorCode field contains the exact error names or substrings 'AccessDenied' and 'UnauthorizedOperation'."
+          "Error codes or messages containing 'AccessDenied' or 'UnauthorizedOperation' reliably indicate a failed or unauthorized API call."
         ],
-        "confidence": 0.85,
+        "confidence": 0.88,
         "executed": true,
         "retried": false,
         "execution_error": null,
@@ -420,9 +430,11 @@
           "expected_rows": 2387,
           "missing_columns": [],
           "passed": false,
-          "accuracy_score": 0.0
+          "accuracy_score": 0.8718,
+          "overlap_precision": 0.8227,
+          "overlap_recall": 0.9271
         },
-        "weighted_score": 0.3
+        "weighted_score": 0.9103
       },
       {
         "id": "5",
@@ -430,12 +442,11 @@
         "hypothesis": "Attackers use GetCallerIdentity API calls (similar to Unix 'whoami' command) to identify which AWS account they're using",
         "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'GetCallerIdentity'",
         "interpretation": "This hypothesis is asking for all API calls that retrieve the caller\u2019s identity, analogous to a Unix whoami command.",
-        "reasoning": "The query filters on the specific eventName that represents the GetCallerIdentity API call, which returns the AWS account and user context.",
+        "reasoning": "The GetCallerIdentity eventName uniquely identifies the API used to discover the current AWS account and user context, so filtering on that eventName captures the relevant activity.",
         "assumptions": [
-          "The eventName field accurately records the API action name.",
-          "All relevant GetCallerIdentity calls are logged in the cloudtrail table."
+          "GetCallerIdentity is the sole API used for identity discovery in the logs."
         ],
-        "confidence": 0.87,
+        "confidence": 0.88,
         "executed": true,
         "retried": false,
         "execution_error": null,
@@ -448,7 +459,9 @@
           "expected_rows": 4767,
           "missing_columns": [],
           "passed": true,
-          "accuracy_score": 1.0
+          "accuracy_score": 1.0,
+          "overlap_precision": 1.0,
+          "overlap_recall": 1.0
         },
         "weighted_score": 1.0
       },
@@ -456,41 +469,33 @@
         "id": "6",
         "name": "Secrets Manager Access",
         "hypothesis": "Adversaries may attempt to retrieve secrets (certificates, credentials, sensitive data) from AWS Secrets Manager",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventSource = 'secretsmanager.amazonaws.com' AND eventName ILIKE '%GetSecret%'",
-        "interpretation": "This hypothesis is asking for API calls that retrieve secrets from AWS Secrets Manager.",
-        "reasoning": "I filter on the Secrets Manager service and look for event names containing \"GetSecret\" to capture secret retrieval actions.",
-        "assumptions": [
-          "The eventName field contains the action name and \"GetSecret\" indicates a secret retrieval."
-        ],
-        "confidence": 0.85,
-        "executed": true,
+        "sql": null,
+        "interpretation": null,
+        "reasoning": null,
+        "assumptions": [],
+        "confidence": 0.0,
+        "executed": false,
         "retried": false,
         "execution_error": null,
-        "generation_error": null,
-        "failure_category": null,
+        "generation_error": "Error code: 400 - {'error': {'message': \"Generated JSON does not match the expected schema. Please adjust your prompt. See 'failed_generation' for more details. Error: jsonschema: '' does not validate with /required: missing properties: 'confidence'\", 'type': 'invalid_request_error', 'code': 'json_validate_failed', 'failed_generation': '{\"sql\":\"SELECT _row_id, * FROM cloudtrail WHERE eventSource = \\'secretsmanager.amazonaws.com\\' AND eventName ILIKE \\'%Secret%\\'\",\"interpretation\":\"This asks for any API calls to AWS Secrets Manager that involve retrieving or describing secrets, such as GetSecretValue, GetSecret, or DescribeSecret.\",\"reasoning\":\"The eventSource identifies Secrets Manager, and the eventName pattern captures all secret\u2011related actions. No additional filters are needed to capture potential adversary retrieval attempts.\",\"assumptions\":[\"All secret retrieval actions are represented by event names containing the word \\'Secret\\'.\",\"The account\u2019s Secrets Manager usage is limited to the standard API actions.\"]}'}}",
+        "failure_category": "generation_error",
         "metrics": {
-          "metric_type": "event_rows",
-          "identifier": "eventID",
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "actual_rows": 1,
-          "expected_rows": 1,
-          "exact_match": true,
-          "passed": true,
-          "accuracy_score": 1.0
+          "metric_type": "not_executed",
+          "passed": false,
+          "accuracy_score": 0.0
         },
-        "weighted_score": 1.0
+        "weighted_score": 0.0
       },
       {
         "id": "7",
         "name": "Large EC2 Instance Creation",
         "hypothesis": "Attackers may attempt to launch extra-large EC2 instances (10xlarge or bigger) for cryptomining or other resource-intensive activities",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'RunInstances' AND requestParametersinstanceType LIKE '%xlarge%' AND requestParametersinstanceType >= '10xlarge'",
-        "interpretation": "This hypothesis is asking for EC2 instance launches of size 10xlarge or larger, which could indicate cryptomining or other heavy workloads.",
-        "reasoning": "The query filters for the RunInstances API call and selects instance types containing 'xlarge' that are lexicographically equal to or greater than '10xlarge', capturing 10xlarge and larger sizes.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE requestParametersinstanceType IN ('10xlarge','12xlarge','16xlarge','32xlarge')",
+        "interpretation": "This hypothesis is asking for EC2 instance launch events that request instance types of 10xlarge or larger, which are often used for high\u2011performance or cryptomining workloads.",
+        "reasoning": "The requestParametersinstanceType column records the instance type requested during instance creation. Filtering on the specific large sizes captures the targeted activity without affecting other instance types.",
         "assumptions": [
-          "Instance type strings are formatted such that lexicographic comparison correctly orders sizes (e.g., '10xlarge' > '9xlarge')."
+          "The eventName for instance launches is captured elsewhere but not needed for this filter; all relevant launches are recorded in requestParametersinstanceType.",
+          "Instance types larger than 10xlarge are represented exactly as listed (e.g., 12xlarge)."
         ],
         "confidence": 0.85,
         "executed": true,
@@ -501,7 +506,7 @@
         "metrics": {
           "metric_type": "grouped_exact_match",
           "exact_match": 0.0,
-          "actual_rows": 1057946,
+          "actual_rows": 0,
           "expected_rows": 34,
           "missing_columns": [
             "count",
@@ -516,13 +521,13 @@
         "id": "8",
         "name": "S3 Bucket Brute Force",
         "hypothesis": "Attackers may brute force S3 bucket names by attempting GetBucketAcl requests",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'GetBucketAcl'",
-        "interpretation": "This hypothesis is asking for all GetBucketAcl API calls, which could indicate brute\u2011forcing of S3 bucket names.",
-        "reasoning": "The query filters on the specific eventName that represents an ACL lookup on a bucket, capturing every attempt regardless of source or outcome.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'GetBucketAcl' AND (errorCode ILIKE '%NoSuchBucket%' OR errorCode ILIKE '%AccessDenied%')",
+        "interpretation": "This hypothesis seeks S3 GetBucketAcl attempts that fail, which attackers might use to brute\u2011force bucket names.",
+        "reasoning": "Filtering on the specific API call and on common failure indicators captures the likely brute\u2011force attempts without aggregating or grouping.",
         "assumptions": [
-          "Each GetBucketAcl event corresponds to an attempt to access a bucket name, whether successful or not."
+          "Error codes such as NoSuchBucket or AccessDenied reliably indicate a failed GetBucketAcl attempt."
         ],
-        "confidence": 0.87,
+        "confidence": 0.85,
         "executed": true,
         "retried": false,
         "execution_error": null,
@@ -531,23 +536,25 @@
         "metrics": {
           "metric_type": "grouped_exact_match",
           "exact_match": 0.0,
-          "actual_rows": 350,
+          "actual_rows": 266,
           "expected_rows": 212,
           "missing_columns": [],
           "passed": false,
-          "accuracy_score": 0.0
+          "accuracy_score": 0.887,
+          "overlap_precision": 0.797,
+          "overlap_recall": 1.0
         },
-        "weighted_score": 0.3
+        "weighted_score": 0.9209
       },
       {
         "id": "9a",
         "name": "Suspicious User Agents",
         "hypothesis": "CloudTrail logs contain requests from suspicious user agents (containing 'kali', 'parrot', or 'powershell') indicating potential attacker tools",
         "sql": "SELECT _row_id, * FROM cloudtrail WHERE userAgent ILIKE '%kali%' OR userAgent ILIKE '%parrot%' OR userAgent ILIKE '%powershell%'",
-        "interpretation": "This hypothesis is asking for CloudTrail events whose userAgent field contains any of the substrings 'kali', 'parrot', or 'powershell', which are commonly associated with attacker tools.",
-        "reasoning": "I used case\u2011insensitive substring matching (ILIKE) on the userAgent column to capture any log entry that includes the specified indicators, as required for a threat\u2011hunting query.",
+        "interpretation": "This hypothesis seeks CloudTrail events whose userAgent strings contain indicators of known attacker tools or environments such as Kali Linux, Parrot OS, or PowerShell.",
+        "reasoning": "The query filters on the userAgent column using case\u2011insensitive substring matching for each keyword, capturing any event that logs a suspicious client agent.",
         "assumptions": [
-          "The presence of the substrings in userAgent reliably indicates suspicious activity."
+          "The presence of these substrings in userAgent reliably signals attacker tool usage."
         ],
         "confidence": 0.85,
         "executed": true,
@@ -562,19 +569,21 @@
           "expected_rows": 1896,
           "missing_columns": [],
           "passed": false,
-          "accuracy_score": 0.0
+          "accuracy_score": 0.995,
+          "overlap_precision": 0.9901,
+          "overlap_recall": 1.0
         },
-        "weighted_score": 0.3
+        "weighted_score": 0.9965
       },
       {
         "id": "9b",
         "name": "Suspicious User Agents",
         "hypothesis": "CloudTrail logs contain requests from suspicious user agents (containing 'command/*')",
-        "sql": "SELECT _row_id, * FROM cloudtrail WHERE lower(userAgent) LIKE '%command/%'",
-        "interpretation": "This hypothesis is asking for all CloudTrail log entries whose userAgent field contains the substring 'command/' (case\u2011insensitive), indicating potentially suspicious command\u2011line activity.",
-        "reasoning": "I filter on the userAgent column using a case\u2011insensitive LIKE pattern to capture any occurrence of 'command/' in the string.",
+        "sql": "SELECT _row_id, * FROM cloudtrail WHERE userAgent ILIKE '%command/%'",
+        "interpretation": "This hypothesis is asking for any CloudTrail event whose userAgent string includes the substring 'command/', which is often used by malicious or suspicious tools.",
+        "reasoning": "I used a case\u2011insensitive LIKE to capture any occurrence of 'command/' in the userAgent column, ensuring that variations in capitalization are also matched.",
         "assumptions": [
-          "The presence of 'command/' in userAgent is a reliable indicator of suspicious activity."
+          "The presence of 'command/' in the userAgent is a reliable indicator of suspicious activity."
         ],
         "confidence": 0.85,
         "executed": true,
@@ -589,7 +598,9 @@
           "expected_rows": 101,
           "missing_columns": [],
           "passed": false,
-          "accuracy_score": 0.0
+          "accuracy_score": 0.0,
+          "overlap_precision": 0.0,
+          "overlap_recall": 0.0
         },
         "weighted_score": 0.3
       },
@@ -598,12 +609,12 @@
         "name": "Permanent Key Creation",
         "hypothesis": "CreateAccessKey events from IAM users (not roles) can identify creation of long-term credentials",
         "sql": "SELECT _row_id, * FROM cloudtrail WHERE eventName = 'CreateAccessKey' AND userIdentitytype = 'IAMUser'",
-        "interpretation": "This hypothesis seeks to isolate CreateAccessKey API calls that were performed by IAM users rather than roles, indicating the creation of long\u2011term credentials.",
-        "reasoning": "The query filters on the specific event name and limits the identity type to IAMUser, which excludes role\u2011based identities such as AssumedRole or ServiceRole.",
+        "interpretation": "This hypothesis seeks to identify CreateAccessKey API calls that were performed by IAM users rather than roles, indicating the creation of long\u2011term credentials.",
+        "reasoning": "The CreateAccessKey event name marks credential creation, and filtering on userIdentitytype='IAMUser' excludes role\u2011based calls. All columns are returned for further investigation.",
         "assumptions": [
-          "IAMUser identity type represents a user and not a role; CreateAccessKey events from this type correspond to long\u2011term credential creation."
+          "IAMUser identity type indicates a user, not a role or service principal."
         ],
-        "confidence": 0.85,
+        "confidence": 0.88,
         "executed": true,
         "retried": false,
         "execution_error": null,

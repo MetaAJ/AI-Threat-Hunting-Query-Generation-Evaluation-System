@@ -80,9 +80,15 @@ def evaluate_grouped_result(actual: pd.DataFrame, expected: pd.DataFrame) -> dic
             "accuracy_score": 0.0,
         }
 
-    exact_match = float(
-        _normalized_rows(actual[list(expected.columns)]) == _normalized_rows(expected)
-    )
+    actual_tuples = _normalized_rows(actual[list(expected.columns)])
+    expected_tuples = _normalized_rows(expected)
+    exact_match = float(actual_tuples == expected_tuples)
+
+    true_positives = len(actual_tuples & expected_tuples)
+    precision = true_positives / len(actual_tuples) if actual_tuples else 0.0
+    recall = true_positives / len(expected_tuples) if expected_tuples else float(not actual_tuples)
+    overlap_f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+
     return {
         "metric_type": "grouped_exact_match",
         "exact_match": exact_match,
@@ -90,7 +96,9 @@ def evaluate_grouped_result(actual: pd.DataFrame, expected: pd.DataFrame) -> dic
         "expected_rows": len(expected),
         "missing_columns": [],
         "passed": bool(exact_match),
-        "accuracy_score": exact_match,
+        "accuracy_score": round(overlap_f1, 4),
+        "overlap_precision": round(precision, 4),
+        "overlap_recall": round(recall, 4),
     }
 
 

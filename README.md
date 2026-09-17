@@ -25,7 +25,7 @@ Expected outcomes are isolated from query generation and are loaded only for off
 uv sync
 ```
 
-Put `nineteenFeaturesDf.csv` at `data/nineteenFeaturesDf.csv`, then create `.env`:
+Put `nineteenFeaturesDf.csv` at `data/nineteenFeaturesDf.csv` from Kaggle (https://www.kaggle.com/datasets/nobukim/aws-cloudtrails-dataset-from-flaws-cloud?resource=download&select=nineteenFeaturesDf.csv), then create `.env`:
 
 ```text
 GROQ_API_KEY=your_key_here

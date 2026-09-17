@@ -49,13 +49,13 @@ The run writes `evaluation_results.json` and `EVALUATION_REPORT.md`.
 
 ## Design decisions
 
-# Choice of interface
+### Choice of interface
 DuckDB queries the 1 GB CSV without loading it fully into application memory and supports SQL execution, inspection, and filtering and aggregation directly. And finally, one retry repairs execution errors if any.
 
-# Prompting decision
+### Prompting decision
 The old_prompt file in the prompts folder shows the LLM is injected with a prompt where it has to make grouping decisions on the basis of hypotheses which can affect the quality of the SQL query generated. So the new system_prompt has explicit guardrail on providing only select statements without any group by and the LLM response parser function ensures it.
 
-# Evaluation framework
+### Evaluation framework
 The result is evaluated on 2 basis:
 1. Event level result : Compared as is to the expected outcome
 2. Group level result : Ensured by grouping columns of the hypotheses where the expected outcome has a count, to compare it to our actual outcome/result.
